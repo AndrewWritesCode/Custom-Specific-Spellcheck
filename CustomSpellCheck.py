@@ -42,6 +42,7 @@ class WordBook:
 
     def addDictionaryToWordBook(self, inputDictionary): # adds each entry of a python dictionary with a given key to wordBook
         for key in inputDictionary:
+            self.wordBook[key] = {}
             try: # this runs if there is an existing field (otherwise it woould overwrite unrellated existing dictionary fields)
                 for subKey in inputDictionary[key]:
                     self.wordBook[key][subKey] = inputDictionary[key][subKey]

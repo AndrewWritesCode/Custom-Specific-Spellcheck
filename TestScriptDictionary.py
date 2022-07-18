@@ -8,6 +8,10 @@ testDict = {
     "helium": {
         "name": "helium",
         "atomicNum": "2"
+    },
+    "lithium": {
+        "name": "lithium",
+        "atomicNum": "2"
     }
 }
 
@@ -17,7 +21,7 @@ testBook.addDictionaryToWordBook(testDict)
 
 
 print(testBook.wordBook)
-userInput = input("What element do you want to know the atomic number of? ")
+userInput = input("Which element do you want to know the atomic number of? ")
 spellCheckedInput = CustomSpellCheck.spellCheck(userInput, testBook.wordBook)
 if userInput == spellCheckedInput:
     print('Atomic number is ' + str(testBook.wordBook[spellCheckedInput]['atomicNum']))
