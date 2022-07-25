@@ -16,7 +16,6 @@ def CharScoresGenerator(charchterString):
                 charScores[char][char2] = 0
     return charScores
 
-defaultCharScores = CharScoresGenerator(defaultCharacters)
 
 # writes a charScores dictionary to a json file
 def CharScoresJsonGenerator(charScores, json_output_path):
@@ -43,7 +42,7 @@ def wordScore(inputText, charScores, wordLengthBias=1, fxnOffset=0.1):
         for symbol in charScores:
             if symbol == letter:
                 for symbolScore in charScores[symbol]:
-                    scoreFxn = np.absolute(np.sin(step/len(charScores))) + fxnOffset
+                    scoreFxn = np.absolute(np.sin(np.pi*step/len(charScores))) + fxnOffset
                     score[index] += charScores[symbol][symbolScore] * wordLengthBias * scoreFxn
             index += 1
         step += 1
@@ -54,6 +53,7 @@ class WordBook:
     def __init__(self, validCharacters=defaultCharacters):  # Initializes a wordBook with a given character space
         self.wordBook = {}
         self.validCharacters = validCharacters
+        self.charScores = CharScoresGenerator(validCharacters)
         # TODO: add optional spellcheck function inputs for spellcheck
 
     def addStringToWordBook(self, inputString):  # adds a single string to a wordBook
@@ -82,11 +82,20 @@ class WordBook:
             try:  # this runs if there is an existing field (otherwise it woould overwrite unrellated existing dictionary fields)
                 for subKey in inputDictionary[key]:
                     self.wordBook[key][subKey] = inputDictionary[key][subKey]
-                self.wordBook[key]['wordScore'] = wordScore(str(key), defaultCharScores)
+                self.wordBook[key]['wordScore'] = wordScore(str(key), self.charScores)
             except:  # this runs if there is no existing field (and creates one)
                 self.wordBook[key] = {}
                 self.wordBook[key]['word'] = str(key)
-                self.wordBook[key]['wordScore'] = wordScore(str(key), defaultCharScores)
+                self.wordBook[key]['wordScore'] = wordScore(str(key), self.charScores)
+
+    def recalculateCharScores(self):
+        self.charScores = CharScoresGenerator(self.validCharacters)
+
+    def exportCharScoresToJson(self, path):
+        CharScoresJsonGenerator(self.charScores, path)
+
+    def loadCharScoresFromJson(self, path):
+        self.charScores = CharScoresJsonLoader(path)
 
     def recalculateWordScores(self):  # TODO: add customizable wordScore fxns
         for key in self.wordBook:
@@ -96,7 +105,8 @@ class WordBook:
         self.wordBook[str(word)][str(inputKey)] = info
 
 
-def spellCheck(inputText, knownDict, charScores=defaultCharScores):  # compares the wordScore of input word to wordScore of each wordBook entry
+# compares the wordScore of input word to wordScore of each wordBook entry
+def spellCheck(inputText, knownDict, charScores):
     score = wordScore(inputText, charScores)
     bestScore = 9999999  # an extremely high value to initialize min
     closestMatch = ''

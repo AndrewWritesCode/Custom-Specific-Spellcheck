@@ -8,7 +8,7 @@ testBook.addInfoToWordBookEntry('helium', 'atomic number', 2)
 
 # print(testBook.wordBook)
 userInput = input("Which element do you want to know the atomic number of? ")
-spellCheckedInput = CustomSpellCheck.spellCheck(userInput, testBook.wordBook)
+spellCheckedInput = CustomSpellCheck.spellCheck(userInput, testBook.wordBook, testBook.charScores)
 if userInput == spellCheckedInput:
     print('Atomic number is ' + str(testBook.wordBook[spellCheckedInput]['atomic number']))
 else:
