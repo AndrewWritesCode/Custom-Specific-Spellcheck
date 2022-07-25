@@ -1,74 +1,111 @@
 import numpy as np
+import json
 
 defaultCharacters = 'abcdefghijklmnopqrstuvwxyz 0123456789'
 
-def wordScore(inputText): # defines a score for a word, stored in a numpy array
+
+# Generates a dictionary to store character scores based on input character
+def CharScoresGenerator(charchterString):
+    charScores = {}
+    for char in charchterString:
+        charScores[char] = {}
+        for char2 in charchterString:
+            if char2 == char:
+                charScores[char][char2] = 1
+            else:
+                charScores[char][char2] = 0
+    return charScores
+
+defaultCharScores = CharScoresGenerator(defaultCharacters)
+
+# writes a charScores dictionary to a json file
+def CharScoresJsonGenerator(charScores, json_output_path):
+    json_object = json.dumps(charScores, indent=4)
+    f = open(json_output_path, 'w')
+    f.write(json_object)
+    f.close()
+
+
+# creates a charScores dictionary from a json file
+def CharScoresJsonLoader(json_input_path):
+    with open(json_input_path, encoding="utf-8") as json_file:
+        charScores = json.load(json_file)
+    return charScores
+
+
+# defines a score for a word, stored in a numpy array
+def wordScore(inputText, charScores, wordLengthBias=1, fxnOffset=0.1):
     inputText = inputText.lower()
-    score = np.zeros(len(defaultCharacters))
+    score = np.zeros(len(charScores))
     step = 0
     for letter in inputText:
         index = 0
-        for symbol in defaultCharacters:
+        for symbol in charScores:
             if symbol == letter:
-                score[index] += np.absolute(step - ((len(inputText)-1)/2))/len(inputText) + np.absolute(step - (2/(len(inputText)-1)))/len(inputText) #this adjusts score based on letter placement (spellcheck fxn)
+                for symbolScore in charScores[symbol]:
+                    scoreFxn = np.absolute(np.sin(step/len(charScores))) + fxnOffset
+                    score[index] += charScores[symbol][symbolScore] * wordLengthBias * scoreFxn
             index += 1
         step += 1
     return score
 
+
 class WordBook:
-    def __init__(self, validCharacters = defaultCharacters): # Initializes a wordBook with a given character space
+    def __init__(self, validCharacters=defaultCharacters):  # Initializes a wordBook with a given character space
         self.wordBook = {}
         self.validCharacters = validCharacters
         # TODO: add optional spellcheck function inputs for spellcheck
 
-    def addStringToWordBook(self, inputString): # adds a single string to a wordBook
+    def addStringToWordBook(self, inputString):  # adds a single string to a wordBook
         inputString = inputString.lower()
         inputStringScore = wordScore(inputString)
         wordInfo = {
             'word': inputString,
             'wordScore': inputStringScore
         }
-        try: # this runs if there is an existing field (otherwise it woould overwrite unrellated existing dictionary fields)
+        try:  # this runs if there is an existing field (otherwise it woould overwrite unrellated existing dictionary fields)
             self.wordBook[inputString]['word'] = wordInfo['word']
             self.wordBook[inputString]['wordScore'] = wordInfo['wordScore']
-        except: # this runs if there is no existing field (and creates one)
+        except:  # this runs if there is no existing field (and creates one)
             self.wordBook[inputString] = {}
             self.wordBook[inputString]['word'] = wordInfo['word']
             self.wordBook[inputString]['wordScore'] = wordInfo['wordScore']
 
-    def addListToWordBook(self, inputList): # adds each entry of a list to wordBook
+    def addListToWordBook(self, inputList):  # adds each entry of a list to wordBook
         for inputString in inputList:
             self.addStringToWordBook(inputString)
 
-    def addDictionaryToWordBook(self, inputDictionary): # adds each entry of a python dictionary with a given key to wordBook
+    def addDictionaryToWordBook(self,
+                                inputDictionary):  # adds each entry of a python dictionary with a given key to wordBook
         for key in inputDictionary:
             self.wordBook[key] = {}
-            try: # this runs if there is an existing field (otherwise it woould overwrite unrellated existing dictionary fields)
+            try:  # this runs if there is an existing field (otherwise it woould overwrite unrellated existing dictionary fields)
                 for subKey in inputDictionary[key]:
                     self.wordBook[key][subKey] = inputDictionary[key][subKey]
-                self.wordBook[key]['wordScore'] = wordScore(key)
-            except: # this runs if there is no existing field (and creates one)
+                self.wordBook[key]['wordScore'] = wordScore(str(key), defaultCharScores)
+            except:  # this runs if there is no existing field (and creates one)
                 self.wordBook[key] = {}
                 self.wordBook[key]['word'] = str(key)
-                self.wordBook[key]['wordScore'] = wordScore(str(key))
+                self.wordBook[key]['wordScore'] = wordScore(str(key), defaultCharScores)
 
-    def recalculateWordScores(self): # TODO: add customizable wordScore fxns
+    def recalculateWordScores(self):  # TODO: add customizable wordScore fxns
         for key in self.wordBook:
             self.wordBook[key]['wordScore'] = spellCheck(str(key))
 
-    def addInfoToWordBookEntry(self, word, inputKey, info): # adds a new key for for a given WordBook entry
+    def addInfoToWordBookEntry(self, word, inputKey, info):  # adds a new key for for a given WordBook entry
         self.wordBook[str(word)][str(inputKey)] = info
 
-def spellCheck(inputText, knownDict): # compares the wordScore of input word to wordScore of each wordBook entry
-    score = wordScore(inputText)
-    bestScore = 9999999 # an extremely high value to intialize min
+
+def spellCheck(inputText, knownDict, charScores=defaultCharScores):  # compares the wordScore of input word to wordScore of each wordBook entry
+    score = wordScore(inputText, charScores)
+    bestScore = 9999999  # an extremely high value to initialize min
     closestMatch = ''
     for word in knownDict:
         # Looks at the entries for each word, then looks up the the wordScore for that word and compares it inputText
         try:
             # the square of the length between the inputText and candidate word
             currentScore = np.dot(score - knownDict[word]['wordScore'], score - knownDict[word]['wordScore'])
-        except: # This runs in the event that the wordscore for the wordBook wasn't pre-generated
+        except:  # This runs in the event that the wordscore for the wordBook wasn't pre-generated
             knownDict[word]['wordScore'] = wordScore(str(word))
             currentScore = np.dot(score - knownDict[word]['wordScore'], score - knownDict[word]['wordScore'])
         if currentScore < bestScore:
