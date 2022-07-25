@@ -38,7 +38,6 @@ def wordScore(inputText, charScores, wordLengthBias=1, fxnOffset=0.1, fxnMag=1):
     if wordLengthBias < 0:
         wordLengthBias = 0
     wordLengthBias = (np.power(len(inputText), wordLengthBias) / 100) + 1
-    print(str(wordLengthBias))
     score = np.zeros(len(charScores))
     step = 0
     for letter in inputText:
