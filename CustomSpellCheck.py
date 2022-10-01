@@ -20,9 +20,8 @@ def CharScoresGenerator(charchterString):
 # writes a charScores dictionary to a json file
 def CharScoresJsonGenerator(charScores, json_output_path):
     json_object = json.dumps(charScores, indent=4)
-    f = open(json_output_path, 'w')
-    f.write(json_object)
-    f.close()
+    with open(json_output_path, 'w') as j:
+        j.write(json_object)
 
 
 # creates a charScores dictionary from a json file
