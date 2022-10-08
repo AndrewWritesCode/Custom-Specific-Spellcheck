@@ -14,14 +14,15 @@ qwerty_letters = 'qwertyuiopasdfghjklzxcvbnm'  # used to generate keyboard mis-s
 
 
 def AddWordToDataSet(datapoint, actual_word):
-    dataset.append(datapoint)
+    if datapoint[0] not in en_dict:
+        dataset.append(datapoint)
     generated_input_word = actual_word
     return generated_input_word
 
 
 dataset = []
 for word in en_dict:
-    if len(word) > 2:
+    if (len(word) > 2) and (',' not in word):
         word = word.lower()
         input_word = word
         actual_word = word
