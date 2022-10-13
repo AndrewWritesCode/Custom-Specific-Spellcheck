@@ -32,10 +32,12 @@ def charScores_json_loader(json_input_path):
 
 
 # defines a score for a word, stored in a numpy array
-def string_to_wordScore(input_text, char_scores, word_length_bias=5, fxn_offset=0.1, fxn_mag=1):
+def string_to_wordScore(input_text, char_scores, word_length_bias=1.00, fxn_offset=0.1, fxn_mag=1):
     input_text = input_text.lower()
+    # word_length_bias controls the how much the word length impacts the wordScore values
     if word_length_bias < 0.01:
         word_length_bias = 0.01
+    word_length_bias = ((len(input_text) * (word_length_bias - 1)) / 4.7) - 1  # based on average English word length
     score = np.zeros(len(char_scores))
     step = 0
     for letter in input_text:
