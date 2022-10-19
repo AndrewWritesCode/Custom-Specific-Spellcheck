@@ -14,8 +14,8 @@ def ch_enc(dev, character_string=default_characters):
     ch_weights = torch.randn(ch_len, ch_len, requires_grad=True)
     for char in character_string:
         ch_encodings[char] = i
-        with torch.no_grad():
-            ch_weights[i, i] = 1.0
+        #with torch.no_grad():
+        #    ch_weights[i, i] = 1.0
         i += 1
     # each row represents a char, and each column represents a scoring component that is added when that char is indexed
     return ch_encodings, ch_weights
@@ -88,13 +88,8 @@ print(f'Using device: {gpu}')
 ch_e, ch_w = ch_enc(gpu)
 fxn_weights = torch.randn(3, requires_grad=True)
 
-
-t_string = 'ankhasdfgbkhashfjy'
-t_string2 = 'euhsfgjadgkjno'
-
-
 num_epochs = 2
-learning_rate = 0.000005
+learning_rate = 0.00001
 
 epoch_num = 1
 for epoch in range(num_epochs):
@@ -112,7 +107,8 @@ for epoch in range(num_epochs):
         label_score = string_to_wordScore(row[1], ch_e, ch_w, fxn_weights, gpu)
         noise_score = string_to_wordScore(noise_string, ch_e, ch_w, fxn_weights, gpu)
         noise_norm = torch.norm(torch.sub(in_score, noise_score))
-        loss = torch.norm(torch.sub(in_score, label_score)) - 0.5 * torch.norm(torch.sub(in_score, noise_score)/noise_norm)
+        loss = torch.norm(in_score - label_score) / torch.norm(in_score - noise_score) + torch.sum(torch.pow(fxn_weights, 2))
+        # loss = torch.norm(torch.sub(in_score, label_score)) - 0.5 * torch.norm(torch.sub(in_score, noise_score)/noise_norm)
         # backward step
         fxn_weights.grad = None
         ch_w.grad = None
@@ -124,6 +120,8 @@ for epoch in range(num_epochs):
         #
         if itr % 1000 == 0:
             test_loss = 0
+            avg_sc_dist = 0
+            avg_noise_dist = 0
             spellcheck_acc = 0
             random.shuffle(test_set)
             test_loss_set = test_set[:100]
@@ -133,10 +131,12 @@ for epoch in range(num_epochs):
                 in_score = string_to_wordScore(trow[0], ch_e, ch_w, fxn_weights, gpu)
                 label_score = string_to_wordScore(trow[1], ch_e, ch_w, fxn_weights, gpu)
                 with torch.no_grad():
-                    loss = torch.norm(torch.sub(in_score, label_score)) - 0.5 * torch.norm(torch.sub(in_score, noise_score)/noise_norm)
-                    sc_dist = torch.norm(torch.sub(in_score, label_score))
-                    noise_dist = torch.norm(torch.sub(in_score, noise_score))
-                test_loss += loss
+                    loss = torch.norm(in_score - label_score) / torch.norm(in_score - noise_score) + torch.sum(torch.pow(fxn_weights, 2))
+                    sc_dist = torch.norm(in_score - label_score)
+                    noise_dist = torch.norm(in_score - noise_score)
+                    test_loss += loss
+                    avg_sc_dist += sc_dist
+                    avg_noise_dist += noise_dist
                 sc = spellcheck(wordBook, trow[0], ch_e, ch_w, fxn_weights, gpu)
                 if sc == trow[1]:
                     spellcheck_acc += 1
@@ -144,7 +144,9 @@ for epoch in range(num_epochs):
                     # print(f'{sc} does not spellcheck to {trow[1]}')
                     pass
             test_loss /= len(test_loss_set)
+            avg_sc_dist /= len(test_loss_set)
+            avg_noise_dist /= len(test_loss_set)
             spellcheck_acc /= len(test_loss_set)
-            print(f'Epoch {epoch_num}, train itr {itr}, test loss = {test_loss}, sc distance: {sc_dist}, noise distance: {noise_dist} spellcheck acc = {spellcheck_acc}')
+            print(f'Epoch {epoch_num}, train itr {itr}, test loss = {test_loss}, sc distance: {avg_sc_dist}, noise distance: {avg_noise_dist} spellcheck acc = {spellcheck_acc}')
         itr += 1
     epoch_num += 1
