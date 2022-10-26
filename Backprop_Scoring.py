@@ -1,9 +1,8 @@
 import csv
-import math
 import torch
 import random
 from matplotlib import pyplot as plt
-
+import numpy as np
 
 default_characters = 'abcdefghijklmnopqrstuvwxyz -0123456789'
 
@@ -16,7 +15,7 @@ def ch_enc(dev, character_string=default_characters):
     ch_weights = torch.randn(ch_len, ch_len, requires_grad=True)
     for char in character_string:
         ch_encodings[char] = i
-        #with torch.no_grad():
+        # with torch.no_grad():
         #    ch_weights[i, i] = 1.0
         i += 1
     # each row represents a char, and each column represents a scoring component that is added when that char is indexed
@@ -87,18 +86,29 @@ gpu = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 cpu = torch.device('cpu')
 
 print(f'Using device: {gpu}')
-ch_e, ch_w = ch_enc(gpu)
-fxn_weights = torch.randn(3, requires_grad=True)
 
-num_epochs = 1
 learning_rate = 0.00001
-accuracy_thresh = 1.0
+accuracy_thresh = 0.97
 
 plt_acc_data_points = []
-epoch_num = 1
-for epoch in range(num_epochs):
+plt_sc_dist_data_points = []
+plt_noise_dist_data_points = []
+plt_test_loss_data_points = []
+test_wordBook_size = 200
+model_num = 5
+
+for model in range(model_num):
+    fxn_weights = torch.randn(3, requires_grad=True)
+    ch_e, ch_w = ch_enc(gpu)
+    print(f'Starting training of Model {model + 1}/{model_num}')
     itr = 0
-    for row in train_set:
+    model_data_points = []
+    sc_dist_data_points = []
+    noise_dist_data_points = []
+    test_loss_data_points = []
+    random.shuffle(train_set)
+    random.shuffle(test_set)
+    for row in train_set.copy():
         noise_string = ''
         for i in range(len(row[0])):
             c_idx = random.randrange(len(ch_e))
@@ -111,8 +121,8 @@ for epoch in range(num_epochs):
         label_score = string_to_wordScore(row[1], ch_e, ch_w, fxn_weights, gpu)
         noise_score = string_to_wordScore(noise_string, ch_e, ch_w, fxn_weights, gpu)
         noise_norm = torch.norm(torch.sub(in_score, noise_score))
-        loss = 10 * torch.norm(in_score - label_score) / (torch.norm(in_score - noise_score) + 0.01) + torch.sum(torch.pow(fxn_weights, 2))
-        # loss = torch.norm(torch.sub(in_score, label_score)) - 0.5 * torch.norm(torch.sub(in_score, noise_score)/noise_norm)
+        loss = 10 * torch.norm(in_score - label_score) / (torch.norm(in_score - noise_score) + 0.01) + \
+               torch.sum(torch.pow(fxn_weights, 2))
         # backward step
         fxn_weights.grad = None
         ch_w.grad = None
@@ -122,20 +132,21 @@ for epoch in range(num_epochs):
             fxn_weights -= fxn_weights.grad * learning_rate
             ch_w -= ch_w.grad * learning_rate
         #
-        if itr % 100 == 0:
+        if itr % 50 == 0:
             test_loss = 0
             avg_sc_dist = 0
             avg_noise_dist = 0
             spellcheck_acc = 0
             random.shuffle(test_set)
-            test_loss_set = test_set[:100]
+            test_loss_set = test_set[:test_wordBook_size]
             test_loss_inputs, test_loss_labels = zip(*test_loss_set)
             wordBook = create_wordBook(test_loss_labels, ch_e, ch_w, fxn_weights, gpu)
-            for trow in test_loss_set:
+            for trow in test_loss_set.copy():
                 in_score = string_to_wordScore(trow[0], ch_e, ch_w, fxn_weights, gpu)
                 label_score = string_to_wordScore(trow[1], ch_e, ch_w, fxn_weights, gpu)
                 with torch.no_grad():
-                    loss = 10 * torch.norm(in_score - label_score) / (torch.norm(in_score - noise_score) + 0.01) + torch.sum(torch.pow(fxn_weights, 2))
+                    loss = 10 * torch.norm(in_score - label_score) / (torch.norm(in_score - noise_score) + 0.01) + \
+                           torch.sum(torch.pow(fxn_weights, 2))
                     sc_dist = torch.norm(in_score - label_score)
                     noise_dist = torch.norm(in_score - noise_score)
                     test_loss += loss
@@ -145,38 +156,85 @@ for epoch in range(num_epochs):
                 if sc == trow[1]:
                     spellcheck_acc += 1
                 else:
-                    # print(f'{sc} does not spellcheck to {trow[1]}')
+                    # print(f'{sc} does not spellcheck to {trow[1]}')  # DEBUG
                     pass
             test_loss /= len(test_loss_set)
             avg_sc_dist /= len(test_loss_set)
             avg_noise_dist /= len(test_loss_set)
             spellcheck_acc /= len(test_loss_set)
-            sc_1 = spellcheck_acc
-            print(f'Epoch {epoch_num}, train itr {itr}, test loss = {test_loss}, sc distance: {avg_sc_dist}, noise distance: {avg_noise_dist} spellcheck acc = {spellcheck_acc}')
-            plt_acc_data_points.append((itr, spellcheck_acc))
+            print(f'Model {model + 1}/{model_num}, train itr {itr}, test loss = {test_loss:.3f}, label distance: '
+                  f'{avg_sc_dist:.3f}, noise distance: {avg_noise_dist:.3f} spellcheck acc = {spellcheck_acc:.2f}')
+            model_data_points.append((itr, spellcheck_acc))
+            sc_dist_data_points.append((itr, avg_sc_dist))
+            noise_dist_data_points.append((itr, avg_noise_dist))
+            test_loss_data_points.append((itr, test_loss))
             if spellcheck_acc >= accuracy_thresh:
-                spellcheck_acc = 0
-                random.shuffle(test_set)
-                test_loss_set = test_set[:100]
-                test_loss_inputs, test_loss_labels = zip(*test_loss_set)
-                wordBook = create_wordBook(test_loss_labels, ch_e, ch_w, fxn_weights, gpu)
-                for trow in test_loss_set:
-                    sc = spellcheck(wordBook, trow[0], ch_e, ch_w, fxn_weights, gpu)
-                    if sc == trow[1]:
-                        spellcheck_acc += 1
-                    else:
-                        # print(f'{sc} does not spellcheck to {trow[1]}')
-                        pass
-                spellcheck_acc /= len(test_loss_set)
-                if spellcheck_acc >= accuracy_thresh:
-                    print(f'Spellcheck accuracy tested at {sc_1} and validated at {spellcheck_acc}, ending training')
-                    break
+                print(f'Spellcheck accuracy at {spellcheck_acc:.3f} '
+                      f'which is at or above {accuracy_thresh:.3f} target, ending Model {model + 1} training')
+                break
         itr += 1
-    epoch_num += 1
+    print(f'Ending training of Model {model + 1}/{model_num}')
+    spellcheck_acc = 0
+    plt_acc_data_points.append(model_data_points)
+    plt_sc_dist_data_points.append(sc_dist_data_points)
+    plt_noise_dist_data_points.append(noise_dist_data_points)
+    plt_test_loss_data_points.append(test_loss_data_points)
 
-plt_itr, plt_sc_acc = zip(*plt_acc_data_points)
-plt.plot(plt_itr, plt_sc_acc)
-plt.xlabel('Iteration')
-plt.ylabel('Spellcheck Accuracy')
+# Plotting
+fig, axs = plt.subplots(2, 2)
+fig.suptitle(f'SpellCheck Model Validation Metrics (Wordbook Size = {test_wordBook_size})')
+for dataset in plt_acc_data_points:
+    plt_itr, plt_sc_acc = zip(*dataset)
+    axs[0, 0].plot(plt_itr, plt_sc_acc)
+axs[0, 0].set(title=f'Spellcheck Accuracy to {accuracy_thresh}', ylabel='Accuracy')
+axs[0, 0].grid(True)
+for dataset in plt_test_loss_data_points:
+    plt_itr, plt_loss = zip(*dataset)
+    axs[0, 1].plot(plt_itr, plt_loss)
+axs[0, 1].set(title='Test Set Loss', ylabel='Loss')
+axs[0, 1].grid(True)
+for dataset in plt_sc_dist_data_points:
+    plt_itr, plt_sc_dist = zip(*dataset)
+    axs[1, 0].plot(plt_itr, np.log10(plt_sc_dist))
+axs[1, 0].set(title='Label Distance', ylabel='Distance (log)', xlabel='Training Samples Iterated')
+axs[1, 0].grid(True)
+for dataset in plt_noise_dist_data_points:
+    plt_itr, plt_noise = zip(*dataset)
+    axs[1, 1].plot(plt_itr, np.log10(plt_noise))
+axs[1, 1].set(title='Noise (Null) Distance', xlabel='Training Samples Iterated')
+axs[1, 1].grid(True)
+
+plt.figure()
+for dataset in plt_acc_data_points:
+    plt_itr, plt_sc_acc = zip(*dataset)
+    plt.plot(plt_itr, plt_sc_acc)
+plt.title(f'Spellcheck Accuracy to {accuracy_thresh}')
+plt.xlabel('Training Samples Iterated')
+plt.ylabel('Accuracy')
 plt.grid(True)
+plt.figure()
+for dataset in plt_test_loss_data_points:
+    plt_itr, plt_loss = zip(*dataset)
+    plt.plot(plt_itr, plt_loss)
+plt.title('Test Set Loss')
+plt.xlabel('Training Samples Iterated')
+plt.ylabel('Loss')
+plt.grid(True)
+plt.figure()
+for dataset in plt_sc_dist_data_points:
+    plt_itr, plt_sc_dist = zip(*dataset)
+    plt.plot(plt_itr, np.log10(plt_sc_dist))
+plt.title('Label Distance')
+plt.xlabel('Training Samples Iterated')
+plt.ylabel('Distance')
+plt.grid(True)
+plt.figure()
+for dataset in plt_noise_dist_data_points:
+    plt_itr, plt_noise = zip(*dataset)
+    plt.plot(plt_itr, np.log10(plt_noise))
+plt.title('Noise (Null) Distance')
+plt.xlabel('Training Samples Iterated')
+plt.ylabel('Distance')
+plt.grid(True)
+
 plt.show()
