@@ -94,7 +94,7 @@ plt_acc_data_points = []
 plt_sc_dist_data_points = []
 plt_noise_dist_data_points = []
 plt_test_loss_data_points = []
-test_wordBook_size = 200
+test_wordBook_size = 100
 model_num = 5
 
 for model in range(model_num):
@@ -226,7 +226,7 @@ for dataset in plt_sc_dist_data_points:
     plt.plot(plt_itr, np.log10(plt_sc_dist))
 plt.title('Label Distance')
 plt.xlabel('Training Samples Iterated')
-plt.ylabel('Distance')
+plt.ylabel('Distance (log)')
 plt.grid(True)
 plt.figure()
 for dataset in plt_noise_dist_data_points:
@@ -234,7 +234,7 @@ for dataset in plt_noise_dist_data_points:
     plt.plot(plt_itr, np.log10(plt_noise))
 plt.title('Noise (Null) Distance')
 plt.xlabel('Training Samples Iterated')
-plt.ylabel('Distance')
+plt.ylabel('Distance (log)')
 plt.grid(True)
 
 plt.show()
