@@ -85,7 +85,10 @@ class WordBook:
     # adds each entry of a python dictionary with a given key to wordBook
     def add_dictionary_to_WordBook(self, input_dictionary):
         for key in input_dictionary:
-            self.wordBook[key] = {}
+            if key not in self.wordBook:
+                self.wordBook[key] = {}
+            else:
+                pass
         # this runs if there is an existing field (otherwise it would overwrite unrelated existing dictionary fields)
             try:
                 for subKey in input_dictionary[key]:
@@ -109,9 +112,17 @@ class WordBook:
         for key in self.wordBook:
             self.wordBook[key]['wordScore'] = string_to_wordScore(str(key), self.charScores)
 
-    def add_info_to_WordBook_entry(self, word, input_key, info):  # adds a new key for for a given WordBook entry
-        self.wordBook[str(word)][str(input_key)] = info
+    def add_info_to_WordBook_entry(self, word, info_key, info):  # adds a new key for for a given WordBook entry
+        self.wordBook[str(word)][str(info_key)] = info
 
+    def __iter__(self):
+        return iter(self.wordBook)
+
+    def __add__(self, other):
+        if not isinstance(other, WordBook):
+            raise ValueError('Only WordBooks can be added to other WordBooks!')
+        else:
+            return self.wordBook.update(other.wordBook)
 
 # compares the wordScore of input word to wordScore of each wordBook entry
 def spellCheck(input_text, known_dict, char_scores):
