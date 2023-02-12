@@ -1,0 +1,11 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+/.idea/
+/.vscode/
+/captures/
+/__pycache__/
+.gitattributes
+environment.json
+
+/generated_spelling_dataset.csv
