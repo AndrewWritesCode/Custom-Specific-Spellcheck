@@ -124,6 +124,7 @@ class WordBook:
         else:
             return self.wordBook.update(other.wordBook)
 
+
 # compares the wordScore of input word to wordScore of each wordBook entry
 def spellCheck(input_text, known_dict, char_scores):
     score = string_to_wordScore(input_text, char_scores)
