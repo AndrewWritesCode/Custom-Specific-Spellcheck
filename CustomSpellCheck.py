@@ -5,6 +5,7 @@ default_characters = 'abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_-+={}[]|\\
 
 
 # Generates a dictionary to store character scores based on input character
+# TODO: deprecate this
 def charScores_generator(character_string):
     char_scores = {}
     for char in character_string:
@@ -18,6 +19,7 @@ def charScores_generator(character_string):
 
 
 # writes a charScores dictionary to a json file
+# TODO: deprecate this
 def charScores_json_generator(char_scores, json_output_path):
     json_object = json.dumps(char_scores, indent=4)
     with open(json_output_path, 'w') as j:
@@ -25,6 +27,7 @@ def charScores_json_generator(char_scores, json_output_path):
 
 
 # creates a charScores dictionary from a json file
+# TODO: deprecate this
 def charScores_json_loader(json_input_path):
     with open(json_input_path, encoding="utf-8") as json_file:
         char_scores = json.load(json_file)
@@ -32,6 +35,7 @@ def charScores_json_loader(json_input_path):
 
 
 # defines a score for a word, stored in a numpy array
+# TODO: deprecate this
 def string_to_wordScore(input_text, char_scores, word_length_bias=1.00, fxn_offset=0.1, fxn_mag=1):
     input_text = input_text.lower()
     # word_length_bias controls the how much the word length impacts the wordScore values
@@ -56,11 +60,23 @@ def string_to_wordScore(input_text, char_scores, word_length_bias=1.00, fxn_offs
     return score
 
 
+# creates hash map for easy indexing of valid characters
+def map_chars(characters=default_characters):
+    char_map = {}
+    idx = 0
+    for char in characters:
+        char_map[char] = idx
+        idx += 1
+    return char_map
+
+
 class WordBook:
     def __init__(self, valid_characters=default_characters):  # Initializes a wordBook with a given character space
         self.wordBook = {}
-        self.validCharacters = valid_characters
-        self.charScores = charScores_generator(valid_characters)
+        self.valid_characters = valid_characters
+        self.charScores = charScores_generator(valid_characters)  # TODO: deprecate
+        self.char_map = map_chars(valid_characters)
+        self.max_str_len = len(valid_characters)
 
     def add_string_to_WordBook(self, input_string):  # adds a single string to a wordBook
         input_string = input_string.lower()
@@ -70,6 +86,7 @@ class WordBook:
             'wordScore': input_string_score
         }
         # this runs if there is an existing field (otherwise it would overwrite unrelated existing dictionary fields)
+        # TODO: optimize this
         try:
             self.wordBook[input_string]['word'] = word_info['word']
             self.wordBook[input_string]['wordScore'] = word_info['wordScore']
@@ -99,12 +116,15 @@ class WordBook:
                 self.wordBook[key]['word'] = str(key)
                 self.wordBook[key]['wordScore'] = string_to_wordScore(str(key), self.charScores)
 
+    # TODO: deprecate this
     def recalculate_charScores(self):
-        self.charScores = charScores_generator(self.validCharacters)
+        self.charScores = charScores_generator(self.valid_characters)
 
+    # TODO: deprecate this
     def export_charScores_to_json(self, path):
         charScores_json_generator(self.charScores, path)
 
+    # TODO: deprecate this
     def load_charScores_from_json(self, path):
         self.charScores = charScores_json_loader(path)
 
@@ -126,6 +146,7 @@ class WordBook:
 
 
 # compares the wordScore of input word to wordScore of each wordBook entry
+# TODO: optimize this
 def spellCheck(input_text, known_dict, char_scores):
     score = string_to_wordScore(input_text, char_scores)
     best_score = 9999999  # an extremely high value to initialize min
