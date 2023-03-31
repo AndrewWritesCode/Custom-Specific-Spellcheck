@@ -74,7 +74,7 @@ for epochi in range(num_epochs):
     yHat = ANN_WordBook(inputs)
 
     # compute loss
-    loss = lossMSE(yHat, outputs)  # TODO: make custom loss function to compression N down from flatspace
+    loss = lossMSE(yHat, outputs)  # TODO: make custom loss function to compression N down from flatspace with QuadTree
     losses[epochi] = loss
 
     # backprop
