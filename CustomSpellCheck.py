@@ -127,8 +127,10 @@ class WordBook:
 
 
 # compares the wordScore of input word to wordScore of each wordBook entry
-# TODO: optimize this
+# TODO: optimize this with clustering
 def spellCheck(input_text, known_dict, char_matrix, char_index):
+    if input_text in known_dict:
+        return input_text
     score = string_to_wordScore(input_text, char_matrix, char_index)
     best_score = 9999999  # an extremely high value to initialize min
     closest_match = ''
