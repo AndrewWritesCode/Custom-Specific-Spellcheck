@@ -36,7 +36,7 @@ def string_to_wordScore(input_text, char_matrix, char_index, word_length_bias=1.
     input_text = input_text.lower()
     score_len = len(char_index)
     score = np.zeros(score_len)
-    x = np.linspace(0, 2*np.pi, score_len)
+    x = np.linspace(0, 2*np.pi, len(input_text))
     i = 0
     # sin and cosine along length of word used to simulate rhythmic tempo of words (syllables)
     for letter in input_text:
@@ -116,7 +116,7 @@ class WordBook:
     def spellcheck_word(self, input_text):
         input_text = str(input_text)
         if input_text in self.wordBook:
-            return self.wordBook[input_text]
+            return input_text, self.wordBook[input_text]
         score = string_to_wordScore(input_text, self.charScoreMatrix, self.charIndex)
         best_score = 9999999  # an extremely high value to initialize min
         closest_match = ''
@@ -132,8 +132,8 @@ class WordBook:
                 closest_match = word
                 best_score = current_score
             if current_score == 0:
-                return self.wordBook[closest_match]
-        return self.wordBook[closest_match]
+                return str(closest_match), self.wordBook[closest_match]
+        return str(closest_match), self.wordBook[closest_match]
 
     def __iter__(self):
         return iter(self.wordBook)
