@@ -46,7 +46,6 @@ INPUT (without Custom Spellcheck): `rgb = color_book["ponk"]["RGB"]`
 OUTPUT: `Key Error`
 
 <h3>Spellchecked Input</h3>
-
 INPUT (with Custom Spellcheck): `rgb = color_book.spellcheckword("ponk")[1]["RGB"]`
 
 OUTPUT: `rgb = color_book["pink"]["RGB"]`
