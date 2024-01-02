@@ -1,7 +1,7 @@
 # Custom-Spellcheck
 Takes a list of words specified by user and spellchecks input text to that dictionary
 
-Flow Chart of Valid Word Initialization
+Flow Chart of Valid Word Initialization & Word Selection
 ```mermaid
 graph TD;
     A[valid word added]-->B[wordScore calculated];
