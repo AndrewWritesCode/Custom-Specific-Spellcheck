@@ -19,6 +19,7 @@ graph TD;
 
   
 <h3>Example (color_example.py):</h3>
+
 ```
 import json
 
